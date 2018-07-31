@@ -1,5 +1,15 @@
 ### Predicción de consumo de gas en Punta Arenas
 
+# Se utilizan las siguientes dependencias (instalar sólo si hace falta)
+install.packages("caret")
+install.packages("e1071")
+install.packages("randomForest")
+install.packages("mlr")
+install.packages("ParamHelpers")
+install.packages("rpart")
+install.packages("MLmetrics")
+install.packages("plotly")
+
   ######################## Exploración de datos ######################## 
 
 # Primero se importa el conjunto de datos y se imprimen los primeros ejemplares para observar su naturaleza.
@@ -12,18 +22,19 @@ head(gasConsume)
 # Se crea un vector con el formato de las fechas para realizar una correcta visualización
 Fecha <- as.Date(paste(gasConsume$Mes,gasConsume$Dia,gasConsume$A.o, sep="/"),"%m/%d/%Y")
 
-# Para visualizar los datos se utiliza la biblioteca ggplot que posee una interfaz sencilla para
-# crear gráficos.
-library(ggplot2)
-ggplot(data=gasConsume, aes(x=Fecha, y=Consumo, group=1))+geom_point(color="blue")
+
+plot(Fecha,gasConsume$Consumo,main="Consumo en el tiempo",xlab="Fecha", ylab="Consumo"
+     ,col = "blue", type = "l")
 # Se puede apreciar en este gráfico que existe cierto periodo a través de los años en cuanto al consumo de gas.
 
-ggplot(data=gasConsume, aes(x=Mes, y=Consumo, group=1))+geom_point(color="blue")
+plot(gasConsume$Mes,gasConsume$Consumo,main="Consumo durante los meses",xlab="Fecha", ylab="Meses"
+     ,col = "blue", type= "p")
 # Los rangos de valores de gas consumido son claramente superiores en algunos meses, aún así van desde las 200
 # a 400 unidades aproximadamente por lo que sería imposible predecir de esta forma el consumo para un día en 
 # específico
 
-ggplot(data=gasConsume, aes(x=Dia, y=Consumo, group=1))+geom_point(color="blue")
+plot(gasConsume$Dia,gasConsume$Consumo,main="Consumo durante los meses",xlab="Fecha", ylab="Meses"
+     ,col = "blue", type= "p")
 # No se aprecia ninguna tendencia en el consumo dependiendo el día
 
 # Para modelar la forma en que el consumo varía dependiendo basándose en estas variables se debe crear un modelo 
@@ -72,11 +83,11 @@ fechaTrain <- Fecha[splitIndex]
 fechaTest <- Fecha[-splitIndex]
 
 # Grupo de entrenamiento
-ggplot(data=trainSet, aes(x=fechaTrain, y=Consumo, group=1))+geom_point(color="blue")+ 
-  ggtitle("Entrenamiento")+xlab("Fecha") 
+plot(fechaTrain,trainSet$Consumo,main="Consumo en grupo de entrenamiento",xlab="Fecha", ylab="Consumo"
+     ,col = "blue", type= "p")
 # Grupo de prueba
-ggplot(data=testSet, aes(x=fechaTest, y=Consumo, group=1))+geom_point(color="red")
-  + ggtitle("Prueba")+xlab("Fecha") 
+plot(fechaTest,testSet$Consumo,main="Consumo en grupo de prueba",xlab="Fecha", ylab="Consumo"
+     ,col = "red", type= "p")
 # Se puede apreciar que la muestra de test posee datos de todo el espectro de meses y años.
 
 plot(density(trainSet$Consumo),main="Densidad por unidades de consumo",xlab="Unidades de consumo"
@@ -289,7 +300,11 @@ errors(svrModel,rfModel,dtModel,testSet)
 # predicciones y Decision Trees las peores. El caso de estudiar varios errores es debido a que en ocasiones los
 # valores son tan cercanos que se necesita otra medida, por ejemplo si el MAE es igual, el MSE indica cual
 # posee mayor dispersión, o la calidad con el estimador R^2 (cuyo valor máximo es 1). En este caso los errores
-# resultan claramente diferenciables.
+# resultan claramente diferenciables.  Aún así para establecer una medida del error obtenido, el más intuitivo 
+#corresponde al de MAE que podría definirse como la acumulació del error a lo largo de todas las instancias de 
+#la predicción. Si tomamos el mejor modelo (RF), un error de 46 en 657 valores indica que el error promedio es 
+#de aproximadamente 0.07 en cada una. Como se menciona anteriormente esta medida no es sensible a la dispersión 
+#pero aún así sirve para comprender que tan alta podría ser la pérdida y por tanto que tan riesgoso es el modelo.
 
 # El siguiente ejercicio es predecir valores en distintos rangos de tiempo. Para esto se toma un pequeño conjunto
 # de datos para tomar algunas medidas
@@ -301,6 +316,7 @@ testNumeric <- data.frame(predict(dmy, newdata = testSet2))
 testNumeric$Dia <- range01(testNumeric$Dia)
 testNumeric$Mes <- range01(testNumeric$Mes)
 head(testNumeric)
+# Se utiliza sólo el mejor modelo (RF)
 rfModel <- randomForest(Consumo~., data=testNumeric, method="rf", trControl=control, mtry=8, nodesize=10,ntree=500)
 testNumeric$predictions <- predict(rfModel, testNumeric) 
 testNumeric$fecha <- Fecha[as.integer(rownames(testNumeric))]
